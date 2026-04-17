@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate QA: Real-Time Database Lab</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #020408;
+            --card-bg: rgba(10, 15, 25, 0.98);
+            --accent-purple: #a855f7;
+            --accent-blue: #3b82f6;
+            --text-main: #f1f5f9;
+            --text-dim: #94a3b8;
+            --success: #22c55e;
+            --error: #ef4444;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { background-color: var(--bg-dark); color: var(--text-main); line-height: 1.6; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+        .glass-box { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 25px; margin-bottom: 25px; }
+        h1 { font-size: 2.8rem; text-align: center; margin-bottom: 30px; background: linear-gradient(to right, #fff, var(--accent-purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        h2 { color: var(--accent-blue); margin-bottom: 15px; font-size: 1.4rem; border-left: 5px solid var(--accent-purple); padding-left: 15px; }
+
+        /* LAB LAYOUT */
+        .lab-grid { display: grid; grid-template-columns: 1fr 400px; gap: 20px; }
+        .db-scroll { background: #000; border: 1px solid #222; border-radius: 10px; height: 350px; overflow-y: auto; margin-bottom: 20px; box-shadow: inset 0 0 20px rgba(0,0,0,1); }
+        table { width: 100%; border-collapse: collapse; font-family: 'JetBrains Mono'; font-size: 0.8rem; }
+        th { position: sticky; top: 0; background: #111; color: var(--accent-purple); padding: 12px; text-align: left; border-bottom: 1px solid #333; z-index: 5; }
+        td { padding: 10px; border-bottom: 1px solid #0d0d0d; color: #888; }
+        tr:hover td { color: #fff; background: rgba(168, 85, 247, 0.05); }
+
+        /* EDITOR */
+        .editor-wrap { background: #0d1117; border: 1px solid #30363d; border-radius: 12px; padding: 20px; }
+        .task-info { background: rgba(59, 130, 246, 0.05); border-radius: 8px; padding: 15px; margin-bottom: 15px; border-left: 4px solid var(--accent-blue); }
+        textarea { width: 100%; height: 100px; background: #000; color: #7ee787; border: 1px solid #333; padding: 15px; border-radius: 8px; font-family: 'JetBrains Mono'; font-size: 1rem; outline: none; resize: none; }
+        
+        .btn-row { display: flex; gap: 10px; margin-top: 15px; }
+        button { padding: 10px 18px; border-radius: 6px; border: none; font-weight: 700; cursor: pointer; transition: 0.2s; }
+        .btn-run { background: var(--accent-blue); color: #fff; }
+        .btn-sec { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; }
+
+        .info-panel { margin-top: 15px; padding: 15px; border-radius: 8px; font-size: 0.85rem; display: none; line-height: 1.5; }
+        .hint-p { background: rgba(168, 85, 247, 0.1); border: 1px solid var(--accent-purple); color: #e9d5ff; }
+        .sol-p { background: #161b22; border: 1px solid #30363d; color: #fff; }
+        .sol-p code { color: #7ee787; display: block; margin-top: 8px; background: #000; padding: 5px; border-radius: 4px; }
+
+        .fb { margin-top: 15px; font-weight: bold; display: none; padding: 10px; border-radius: 6px; }
+
+        /* SIDEBAR */
+        .sidebar { background: #0a0c10; border-radius: 12px; border: 1px solid #1e2228; padding: 15px; height: 700px; overflow-y: auto; }
+        .step { padding: 10px; border-radius: 6px; margin-bottom: 6px; font-size: 0.75rem; background: #161b22; opacity: 0.3; border: 1px solid transparent; }
+        .step.active { opacity: 1; border-color: var(--accent-purple); background: rgba(168, 85, 247, 0.05); }
+        .step.passed { opacity: 1; border-color: var(--success); color: var(--success); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Database Testing Academy</h1>
+
+    <div class="glass-box">
+        <h2>📑 Core QA Concepts (Mapping & ACID)</h2>
+        <p style="font-size: 0.9rem; color: var(--text-dim);">Database testing validates that the data visible on the UI matches the actual records stored in the server. We test <b>Integrity</b> (Salary rules), <b>Security</b> (Locked accounts), and <b>Atomicity</b> (Delete/Update success).</p>
+    </div>
+
+    <div class="lab-grid">
+        <div class="main-lab">
+            <div class="db-scroll">
+                <table id="mainTable">
+                    <thead>
+                        <tr><th>ID</th><th>NAME</th><th>DEPT</th><th>SALARY</th><th>STATUS</th><th>LOGINS</th></tr>
+                    </thead>
+                    <tbody id="dbBody"></tbody>
+                </table>
+            </div>
+
+            <div class="editor-wrap">
+                <div class="task-info">
+                    <small id="scenLabel" style="color:var(--accent-blue); font-weight:bold; text-transform:uppercase;"></small>
+                    <p id="scenTask" style="font-weight:600; margin-top:5px;"></p>
+                </div>
+
+                <textarea id="sqlInput" placeholder="-- Type SQL here..."></textarea>
+                
+                <div class="btn-row">
+                    <button class="btn-run" onclick="runTest()">Execute & Validate</button>
+                    <button class="btn-sec" onclick="toggle('hintBox')">Hint</button>
+                    <button class="btn-sec" onclick="toggle('solBox')">Solution & Explanation</button>
+                </div>
+
+                <div id="hintBox" class="info-panel hint-p"></div>
+                <div id="solBox" class="info-panel sol-p"></div>
+                <div id="fb" class="fb"></div>
+            </div>
+        </div>
+
+        <div class="sidebar" id="stepList"></div>
+    </div>
+</div>
+
+<script>
+    // 1. DATA SEED (55+ Records)
+    let employees = [];
+    const depts = ['QA', 'Dev', 'HR', 'Sales', 'Admin', 'Product'];
+    const names = ['Liam', 'Olivia', 'Noah', 'Emma', 'Oliver', 'Ava', 'Lucas', 'Sophia', 'Mason', 'Isabella'];
+    
+    function generateData() {
+        employees = [];
+        for(let i=1; i<=58; i++) {
+            employees.push({
+                id: i,
+                name: names[i % names.length] + " " + (i + 100),
+                dept: depts[i % depts.length],
+                salary: 35000 + (i * 950),
+                status: i % 5 === 0 ? 'Locked' : 'Active',
+                logins: i * 3
+            });
+        }
+    }
+    generateData();
+
+    // 2. 30 SCENARIOS WITH INDIVIDUAL FILTER LOGIC
+    const scenarios = [
+        { id: 0, cat: "Mapping", task: "Verify Data Mapping: Retrieve all columns for all employees.", check: (q) => q.includes("SELECT *"), hint: "SELECT * FROM Employees;", sol: "SELECT * FROM Employees;", exp: "Ensures UI mapping can access all row data.", filter: (data) => data },
+        { id: 1, cat: "Functional", task: "Dept Filter: Find all employees in the 'QA' department.", check: (q) => q.includes("QA"), hint: "WHERE Dept = 'QA'", sol: "SELECT * FROM Employees WHERE Dept = 'QA';", exp: "Tests backend filtering for specific group subsets.", filter: (data) => data.filter(e => e.dept === 'QA') },
+        { id: 2, cat: "Integrity", task: "Salary Check: List employees earning more than 80,000.", check: (q) => q.includes("SALARY > 80000"), hint: "WHERE Salary > 80000", sol: "SELECT * FROM Employees WHERE Salary > 80000;", exp: "Checks numerical comparison operators.", filter: (data) => data.filter(e => e.salary > 80000) },
+        { id: 3, cat: "Security", task: "Account Security: Find all accounts that are 'Locked'.", check: (q) => q.includes("LOCKED"), hint: "WHERE Status = 'Locked'", sol: "SELECT * FROM Employees WHERE Status = 'Locked';", exp: "Auditing accounts for security compliance.", filter: (data) => data.filter(e => e.status === 'Locked') },
+        { id: 4, cat: "Sorting", task: "Sort employees by Logins (Highest first).", check: (q) => q.includes("ORDER BY") && q.includes("DESC"), hint: "ORDER BY Logins DESC", sol: "SELECT * FROM Employees ORDER BY Logins DESC;", exp: "Tests engine sorting capabilities.", filter: (data) => [...data].sort((a,b) => b.logins - a.logins) },
+        { id: 5, cat: "ACID", task: "Delete user with ID 10 to test record removal durability.", check: (q) => q.includes("DELETE") && q.includes("10"), hint: "DELETE FROM Employees WHERE ID = 10", sol: "DELETE FROM Employees WHERE ID = 10;", exp: "Verifies the database permanently removes data.", filter: (data) => { employees = employees.filter(e => e.id !== 10); return employees; } },
+        { id: 6, cat: "Functional", task: "Admin Audit: Find 'Admin' employees with > 50 logins.", check: (q) => q.includes("ADMIN") && q.includes("50"), hint: "WHERE Dept = 'Admin' AND Logins > 50", sol: "SELECT * FROM Employees WHERE Dept = 'Admin' AND Logins > 50;", exp: "Tests multi-condition logic.", filter: (data) => data.filter(e => e.dept === 'Admin' && e.logins > 50) },
+        { id: 7, cat: "Constraint", task: "Range Check: Salary between 50k and 60k.", check: (q) => q.includes("BETWEEN"), hint: "WHERE Salary BETWEEN 50000 AND 60000", sol: "SELECT * FROM Employees WHERE Salary BETWEEN 50000 AND 60000;", exp: "Validates range-based filters.", filter: (data) => data.filter(e => e.salary >= 50000 && e.salary <= 60000) },
+        { id: 8, cat: "Pattern", task: "Find employees whose names start with 'L'.", check: (q) => q.includes("LIKE 'L%'"), hint: "WHERE Name LIKE 'L%'", sol: "SELECT * FROM Employees WHERE Name LIKE 'L%';", exp: "Tests string wildcard matching.", filter: (data) => data.filter(e => e.name.startsWith('L')) },
+        { id: 9, cat: "Functional", task: "Find HR employees who are currently 'Active'.", check: (q) => q.includes("HR") && q.includes("ACTIVE"), hint: "WHERE Dept = 'HR' AND Status = 'Active'", sol: "SELECT * FROM Employees WHERE Dept = 'HR' AND Status = 'Active';", exp: "Verifies cross-field matching.", filter: (data) => data.filter(e => e.dept === 'HR' && e.status === 'Active') },
+        { id: 10, cat: "Performance", task: "Get the top 3 highest paid employees.", check: (q) => q.includes("LIMIT 3"), hint: "ORDER BY Salary DESC LIMIT 3", sol: "SELECT * FROM Employees ORDER BY Salary DESC LIMIT 3;", exp: "Tests result capping logic.", filter: (data) => [...data].sort((a,b) => b.salary - a.salary).slice(0,3) },
+        { id: 11, cat: "Integrity", task: "Find Sales staff with logins exactly equal to 12.", check: (q) => q.includes("SALES") && q.includes("= 12"), hint: "WHERE Dept = 'Sales' AND Logins = 12", sol: "SELECT * FROM Employees WHERE Dept = 'Sales' AND Logins = 12;", exp: "Tests precise value matching.", filter: (data) => data.filter(e => e.dept === 'Sales' && e.logins === 12) },
+        { id: 12, cat: "Security", task: "Exclusion: Show all employees EXCEPT those in Admin.", check: (q) => q.includes("!= 'ADMIN'") || q.includes("<> 'ADMIN'"), hint: "WHERE Dept != 'Admin'", sol: "SELECT * FROM Employees WHERE Dept != 'Admin';", exp: "Tests NOT operator logic.", filter: (data) => data.filter(e => e.dept !== 'Admin') },
+        { id: 13, cat: "Functional", task: "Update ID 1 logins to 999.", check: (q) => q.includes("UPDATE") && q.includes("1"), hint: "UPDATE Employees SET Logins = 999 WHERE ID = 1", sol: "UPDATE Employees SET Logins = 999 WHERE ID = 1;", exp: "Checks update persistence.", filter: (data) => { employees.find(e => e.id === 1).logins = 999; return [employees.find(e => e.id === 1)]; } },
+        { id: 14, cat: "Structural", task: "Identify all employees with IDs between 40 and 50.", check: (q) => q.includes("ID") && q.includes("BETWEEN"), hint: "WHERE ID BETWEEN 40 AND 50", sol: "SELECT * FROM Employees WHERE ID BETWEEN 40 AND 50;", exp: "Tests numeric primary key ranges.", filter: (data) => data.filter(e => e.id >= 40 && e.id <= 50) },
+        { id: 15, cat: "Functional", task: "Find Product employees with Salary < 45000.", check: (q) => q.includes("PRODUCT") && q.includes("< 45000"), hint: "WHERE Dept = 'Product' AND Salary < 45000", sol: "SELECT * FROM Employees WHERE Dept = 'Product' AND Salary < 45000;", exp: "Tests 'Less Than' filtering.", filter: (data) => data.filter(e => e.dept === 'Product' && e.salary < 45000) },
+        { id: 16, cat: "Security", task: "Set Status to 'Locked' for ID 58.", check: (q) => q.includes("UPDATE") && q.includes("58") && q.includes("LOCKED"), hint: "UPDATE Employees SET Status = 'Locked' WHERE ID = 58", sol: "UPDATE Employees SET Status = 'Locked' WHERE ID = 58;", exp: "Tests targeted security updates.", filter: (data) => { employees.find(e => e.id === 58).status = 'Locked'; return [employees.find(e => e.id === 58)]; } },
+        { id: 17, cat: "Functional", task: "Find Devs with names containing '11'.", check: (q) => q.includes("DEV") && q.includes("%11%"), hint: "WHERE Dept = 'Dev' AND Name LIKE '%11%'", sol: "SELECT * FROM Employees WHERE Dept = 'Dev' AND Name LIKE '%11%';", exp: "Tests mid-string pattern search.", filter: (data) => data.filter(e => e.dept === 'Dev' && e.name.includes('11')) },
+        { id: 18, cat: "Mapping", task: "Show all data for Employee ID 15.", check: (q) => q.includes("WHERE ID = 15"), hint: "SELECT * FROM Employees WHERE ID = 15", sol: "SELECT * FROM Employees WHERE ID = 15;", exp: "Checks unique record retrieval.", filter: (data) => data.filter(e => e.id === 15) },
+        { id: 19, cat: "Sorting", task: "List Sales employees sorted by Name.", check: (q) => q.includes("SALES") && q.includes("ORDER BY NAME"), hint: "WHERE Dept = 'Sales' ORDER BY Name", sol: "SELECT * FROM Employees WHERE Dept = 'Sales' ORDER BY Name;", exp: "Tests text-based sorting.", filter: (data) => data.filter(e => e.dept === 'Sales').sort((a,b) => a.name.localeCompare(b.name)) },
+        { id: 20, cat: "Integrity", task: "Find everyone with exactly 0 logins.", check: (q) => q.includes("LOGINS = 0"), hint: "WHERE Logins = 0", sol: "SELECT * FROM Employees WHERE Logins = 0;", exp: "Tests for empty/zero activity audit.", filter: (data) => data.filter(e => e.logins === 0) },
+        { id: 21, cat: "Functional", task: "Find HR or Sales staff (Use IN).", check: (q) => q.includes("IN"), hint: "WHERE Dept IN ('HR', 'Sales')", sol: "SELECT * FROM Employees WHERE Dept IN ('HR', 'Sales');", exp: "Tests set membership logic.", filter: (data) => data.filter(e => e.dept === 'HR' || e.dept === 'Sales') },
+        { id: 22, cat: "ACID", task: "Remove all Locked records from HR.", check: (q) => q.includes("DELETE") && q.includes("HR") && q.includes("LOCKED"), hint: "DELETE FROM Employees WHERE Dept = 'HR' AND Status = 'Locked'", sol: "DELETE FROM Employees WHERE Dept = 'HR' AND Status = 'Locked';", exp: "Tests multi-filter mass deletion.", filter: (data) => { employees = employees.filter(e => !(e.dept === 'HR' && e.status === 'Locked')); return employees; } },
+        { id: 23, cat: "Mapping", task: "Fetch Dept and Salary for ID 30.", check: (q) => q.includes("SALARY") && q.includes("30"), hint: "SELECT Dept, Salary FROM Employees WHERE ID = 30", sol: "SELECT Dept, Salary FROM Employees WHERE ID = 30;", exp: "Validates field isolation for single row.", filter: (data) => data.filter(e => e.id === 30) },
+        { id: 24, cat: "Structural", task: "Find all IDs above 50.", check: (q) => q.includes("ID > 50"), hint: "WHERE ID > 50", sol: "SELECT * FROM Employees WHERE ID > 50;", exp: "Checks data boundary conditions.", filter: (data) => data.filter(e => e.id > 50) },
+        { id: 25, cat: "Security", task: "Set Salary to 0 for employee ID 2.", check: (q) => q.includes("UPDATE") && q.includes("2") && q.includes("0"), hint: "UPDATE Employees SET Salary = 0 WHERE ID = 2", sol: "UPDATE Employees SET Salary = 0 WHERE ID = 2;", exp: "Checks zero-value updates.", filter: (data) => { employees.find(e => e.id === 2).salary = 0; return [employees.find(e => e.id === 2)]; } },
+        { id: 26, cat: "Functional", task: "Find Active Admins with Salary > 50000.", check: (q) => q.includes("ADMIN") && q.includes("ACTIVE") && q.includes("50000"), hint: "WHERE Dept = 'Admin' AND Status = 'Active' AND Salary > 50000", sol: "SELECT * FROM Employees WHERE Dept = 'Admin' AND Status = 'Active' AND Salary > 50000;", exp: "Tests triple-layer filtering.", filter: (data) => data.filter(e => e.dept === 'Admin' && e.status === 'Active' && e.salary > 50000) },
+        { id: 27, cat: "Pattern", task: "Find names ending in '10'.", check: (q) => q.includes("%10"), hint: "WHERE Name LIKE '%10'", sol: "SELECT * FROM Employees WHERE Name LIKE '%10';", exp: "Tests end-of-string wildcards.", filter: (data) => data.filter(e => e.name.endsWith('10')) },
+        { id: 28, cat: "Sorting", task: "Sort by Salary (Lowest first).", check: (q) => q.includes("ORDER BY SALARY ASC"), hint: "ORDER BY Salary ASC", sol: "SELECT * FROM Employees ORDER BY Salary ASC;", exp: "Tests ascending sort logic.", filter: (data) => [...data].sort((a,b) => a.salary - b.salary) },
+        { id: 29, cat: "Final", task: "Refresh view: Show every record for final audit.", check: (q) => q.includes("SELECT *"), hint: "SELECT * FROM Employees", sol: "SELECT * FROM Employees;", exp: "Final validation of database state.", filter: (data) => data }
+    ];
+
+    let currentIdx = 0;
+    let viewData = [...employees];
+
+    function renderTable() {
+        const body = document.getElementById('dbBody');
+        body.innerHTML = viewData.map(row => `
+            <tr>
+                <td>${row.id}</td>
+                <td>${row.name}</td>
+                <td>${row.dept}</td>
+                <td>$${row.salary.toLocaleString()}</td>
+                <td style="color:${row.status==='Active'?'#22c55e':'#ef4444'}">${row.status}</td>
+                <td>${row.logins}</td>
+            </tr>
+        `).join('');
+    }
+
+    function renderSteps() {
+        const list = document.getElementById('stepList');
+        list.innerHTML = scenarios.map((s, idx) => `
+            <div class="step ${idx === currentIdx ? 'active' : ''} ${idx < currentIdx ? 'passed' : ''}">
+                <b>SCENARIO ${idx+1}</b>: ${s.cat}
+            </div>
+        `).join('');
+    }
+
+    function loadScenario() {
+        const s = scenarios[currentIdx];
+        document.getElementById('scenLabel').innerText = s.cat + " Case";
+        document.getElementById('scenTask').innerText = s.task;
+        document.getElementById('hintBox').innerHTML = `<b>💡 HINT:</b> ${s.hint}`;
+        document.getElementById('solBox').innerHTML = `<b>📖 EXPLANATION:</b> ${s.exp} <code>${s.sol}</code>`;
+        document.getElementById('hintBox').style.display = 'none';
+        document.getElementById('solBox').style.display = 'none';
+        document.getElementById('fb').style.display = 'none';
+        document.getElementById('sqlInput').value = "";
+    }
+
+    function toggle(id) {
+        const el = document.getElementById(id);
+        el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function runTest() {
+        const query = document.getElementById('sqlInput').value.toUpperCase();
+        const fb = document.getElementById('fb');
+        const s = scenarios[currentIdx];
+
+        if(s.check(query)) {
+            fb.style.display = 'block';
+            fb.style.background = 'rgba(34, 197, 94, 0.1)';
+            fb.style.color = 'var(--success)';
+            fb.innerText = "QA VALIDATION PASSED! UPDATING TABLE...";
+            
+            // APPLY THE ACTUAL FILTER LOGIC DEFINED IN THE SCENARIO
+            viewData = s.filter([...employees]);
+
+            renderTable();
+            setTimeout(() => {
+                if(currentIdx < 29) {
+                    currentIdx++;
+                    renderSteps();
+                    loadScenario();
+                } else {
+                    fb.innerText = "EXCELLENT! ALL 30 SCENARIOS COMPLETED!";
+                }
+            }, 1200);
+        } else {
+            fb.style.display = 'block';
+            fb.style.background = 'rgba(239, 68, 68, 0.1)';
+            fb.style.color = 'var(--error)';
+            fb.innerText = "FAILED: Query does not match scenario requirement.";
+        }
+    }
+
+    renderTable();
+    renderSteps();
+    loadScenario();
+</script>
+
+</body>
+</html>
